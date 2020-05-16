@@ -1,4 +1,4 @@
-# imgur-upload
+# Imgur Upload
 
 ## Project setup
 ```
