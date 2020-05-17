@@ -1,7 +1,7 @@
 <template>
   <div
     class="flex flex-col justify-center max-w-lg mx-auto mt-6 space-y-4 align-center sm:pt-5"
-  >
+  @paste="addFileTroughPaste">
     <div
       @drop.prevent="addFile"
       @dragover.prevent
@@ -47,6 +47,7 @@
       </div>
       <div v-else class="flex flex-col items-center space-y-3">
         <h2 class="mb-2 text-2xl">Ready to upload</h2>
+        <img v-if="srcFile" :src="srcFile" class="border-red-300 border-indigo-200 border-dashed border-3 max-h-64" alt="Image to upload">
         <div class="inline-flex items-center">
           <svg
             class="w-4 h-4 mr-2 text-gray-500"
@@ -59,7 +60,7 @@
               fill-rule="evenodd"
             ></path>
           </svg>
-          {{ file.name }}
+          {{ file.name }} <span>({{file.size | fileSize}})</span>
           <button
             @click="removeFile()"
             title="Remove"
@@ -187,6 +188,9 @@
 </template>
 
 <script>
+const allowedFormats = /video|image/;
+
+
 export default {
   data: () => ({
     file: null,
@@ -196,34 +200,76 @@ export default {
     successData: null,
     uploading: false,
     copied: false,
+    srcFile: null,
   }),
   computed: {
     uploadDisabled() {
       return this.file && false;
     },
   },
+  filters: {
+    fileSize(bytes) {
+      // thank you stackoverflow
+      // https://stackoverflow.com/a/14919494
+      const threshold = 1000;
+      if (Math.abs(bytes) < threshold) {
+        return `${bytes} B`;
+      }
+      const units = ['kB', 'MB', 'GB'];
+      let u = -1;
+      do {
+        // eslint-disable-next-line no-param-reassign
+        bytes /= threshold;
+        u += 1;
+      } while (Math.abs(bytes) >= threshold && u < units.length - 1);
+      return `${bytes.toFixed(1)} ${units[u]}`;
+    },
+  },
   methods: {
-    addFile(e) {
+    reset() {
       this.error = null;
       this.success = false;
+    },
+    setupReader() {
+      if (this.file.type.split('/')[0] !== 'image') return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        this.srcFile = ev.target.result;
+      };
+      reader.readAsDataURL(this.file);
+    },
+    addFile(e) {
+      this.reset();
       const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type.split('/')[0] !== ('image' && 'video')) {
+      // console.log(droppedFile.type.split('/')[0].test(/video|image/));
+      if (!allowedFormats.test(droppedFile.type.split('/')[0])) {
         this.error = 'File type not supported';
         return;
       }
       if (!droppedFile) return;
       this.file = droppedFile;
+      this.setupReader();
     },
     addFileTroughInput(e) {
-      this.error = null;
-      this.success = false;
-      const droppedFile = e.target.files[0];
-      if (!droppedFile) return;
-      if (droppedFile.type.split('/')[0] !== ('image' && 'video')) {
+      this.reset();
+      const selectedFile = e.target.files[0];
+      if (!selectedFile) return;
+      if (!allowedFormats.test(selectedFile.type.split('/')[0])) {
         this.error = 'File type not supported';
         return;
       }
-      this.file = droppedFile;
+      this.file = selectedFile;
+      this.setupReader();
+    },
+    addFileTroughPaste(e) {
+      const { items } = e.clipboardData;
+      // eslint-disable-next-line no-plusplus
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.split('/')[0] === ('image' || 'video')) {
+          this.file = items[i].getAsFile();
+          this.setupReader();
+        }
+      }
     },
     removeFile() {
       this.error = null;
