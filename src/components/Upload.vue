@@ -47,24 +47,16 @@
       </div>
       <div v-else class="flex flex-col items-center space-y-3">
         <h2 class="mb-2 text-2xl">Ready to upload</h2>
-        <img v-if="srcFile" :src="srcFile" class="border-red-300 border-indigo-200 border-dashed border-3 max-h-64" alt="Image to upload">
+        <img v-if="srcFile" :src="srcFile" class="border-indigo-200 border-dashed border-3 max-h-64" alt="Image to upload">
         <div class="inline-flex items-center">
-          <svg
-            class="w-4 h-4 mr-2 text-gray-500"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-              clip-rule="evenodd"
-              fill-rule="evenodd"
-            ></path>
+          <svg class="w-4 h-4 mr-1 text-gray-700 fill-current" viewBox='0 0 512 512'>
+            <path d='M416,64H96a64.07,64.07,0,0,0-64,64V384a64.07,64.07,0,0,0,64,64H416a64.07,64.07,0,0,0,64-64V128A64.07,64.07,0,0,0,416,64Zm-80,64a48,48,0,1,1-48,48A48.05,48.05,0,0,1,336,128ZM96,416a32,32,0,0,1-32-32V316.37l94.84-84.3a48.06,48.06,0,0,1,65.8,1.9l64.95,64.81L172.37,416Zm352-32a32,32,0,0,1-32,32H217.63L339.05,294.58a47.72,47.72,0,0,1,61.64-.16L448,333.84Z'/>
           </svg>
-          {{ file.name }} <span>({{file.size | fileSize}})</span>
+          {{ file.name }} <span class="ml-2">({{file.size | fileSize}})</span>
           <button
             @click="removeFile()"
             title="Remove"
-            class="ml-3 -mb-1 rounded hover:bg-gray-200"
+            class="ml-3 rounded hover:bg-gray-200"
           >
             <svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4">
               <path
@@ -226,9 +218,11 @@ export default {
     },
   },
   methods: {
-    reset() {
+    removeFile() {
       this.error = null;
-      this.success = false;
+      this.file = null;
+      this.srcFile = null;
+      this.uploading = false;
     },
     setupReader() {
       if (this.file.type.split('/')[0] !== 'image') return;
@@ -239,7 +233,7 @@ export default {
       reader.readAsDataURL(this.file);
     },
     addFile(e) {
-      this.reset();
+      this.removeFile();
       const droppedFile = e.dataTransfer.files[0];
       // console.log(droppedFile.type.split('/')[0].test(/video|image/));
       if (!allowedFormats.test(droppedFile.type.split('/')[0])) {
@@ -251,7 +245,7 @@ export default {
       this.setupReader();
     },
     addFileTroughInput(e) {
-      this.reset();
+      this.removeFile();
       const selectedFile = e.target.files[0];
       if (!selectedFile) return;
       if (!allowedFormats.test(selectedFile.type.split('/')[0])) {
@@ -262,6 +256,7 @@ export default {
       this.setupReader();
     },
     addFileTroughPaste(e) {
+      this.removeFile();
       const { items } = e.clipboardData;
       // eslint-disable-next-line no-plusplus
       for (let i = 0; i < items.length; i++) {
@@ -270,11 +265,6 @@ export default {
           this.setupReader();
         }
       }
-    },
-    removeFile() {
-      this.error = null;
-      this.file = null;
-      this.uploading = false;
     },
     upload() {
       const formData = new FormData();
